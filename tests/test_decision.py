@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from ticker_lens.decision import (
     QUESTIONS,
     DecisionError,
+    news_lean,
     outlook_bucket,
     tally,
     validate_decisions,
@@ -72,3 +73,66 @@ def test_given_review_and_errors_when_tallying_then_neither_counts_as_neutral():
         "Needs review": 1,
         "Unscored": 1,
     }
+
+
+def test_given_review_stories_when_weighting_then_higher_impact_can_reverse_the_lean():
+    # Arrange
+    outlooks = [
+        ("Bullish", [0.6, 0.1, 0.2, 0.1], [0, 0, 1, 0]),
+        ("Bearish", [0.2, 0.6, 0.1, 0.1], [0.5, 0.5, 0, 0]),
+    ]
+    decisions = []
+    for choice, outlook, impact in outlooks:
+        payload = response(choice)
+        payload["answers"]["outlook"]["probabilities"] = dict(
+            zip(QUESTIONS["outlook"].criteria, outlook, strict=True)
+        )
+        payload["answers"]["impact"]["probabilities"] = dict(
+            zip(QUESTIONS["impact"].criteria, impact, strict=True)
+        )
+        decisions.append(validate_decisions(payload))
+
+    # Act
+    result = news_lean(decisions)
+
+    # Assert
+    assert [outlook_bucket(decision) for decision in decisions] == ["Needs review"] * 2
+    assert result.bullish_weight == pytest.approx(11 / 30)
+    assert result.bearish_weight == pytest.approx(8 / 15)
+    assert (result.score, result.label) == (-14, "Leaning bearish")
+
+
+@pytest.mark.parametrize(
+    ("bullish", "bearish", "impact", "score", "label"),
+    [
+        (0.50, 0.45, "High", 5, "Balanced"),
+        (0.50, 0.44, "High", 6, "Leaning bullish"),
+        (0.44, 0.50, "High", -6, "Leaning bearish"),
+        (0.8, 0.1, "Cannot tell", None, "No directional signal"),
+        (0, 0, "High", None, "No directional signal"),
+    ],
+)
+def test_given_directional_weights_when_summarizing_then_reports_lean_or_no_signal(
+    bullish, bearish, impact, score, label
+):
+    # Arrange
+    payload = response()
+    payload["answers"]["outlook"] = {
+        "type": "choice",
+        "choice": "Bullish" if bullish else "Neutral or mixed",
+        "probabilities": {
+            "Bullish": bullish,
+            "Bearish": bearish,
+            "Neutral or mixed": 1 - (bullish + bearish),
+            "Not enough context": 0,
+        },
+    }
+    payload["answers"]["impact"]["probabilities"] = {
+        name: int(name == impact) for name in QUESTIONS["impact"].criteria
+    }
+
+    # Act
+    result = news_lean([validate_decisions(payload)])
+
+    # Assert
+    assert (result.score, result.label) == (score, label)

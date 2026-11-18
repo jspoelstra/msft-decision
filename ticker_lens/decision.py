@@ -2,6 +2,7 @@
 
 import math
 from collections import Counter
+from collections.abc import Iterable
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -9,6 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field
 Bucket = Literal["Bullish", "Bearish", "Neutral or mixed", "Needs review", "Unscored"]
 THRESHOLD = 0.70
 BUCKETS: tuple[Bucket, ...] = ("Bullish", "Bearish", "Neutral or mixed", "Needs review", "Unscored")
+IMPACT_WEIGHTS = {"High": 1.0, "Medium": 2 / 3, "Low": 1 / 3, "Cannot tell": 0.0}
+BALANCED_POINTS = 5
 
 
 class Question(BaseModel):
@@ -74,6 +77,13 @@ class Decisions(BaseModel):
     model: str
 
 
+class NewsLean(BaseModel):
+    bullish_weight: float
+    bearish_weight: float
+    score: int | None
+    label: Literal["Leaning bullish", "Leaning bearish", "Balanced", "No directional signal"]
+
+
 def questions_payload() -> dict[str, dict[str, object]]:
     return {name: question.model_dump() for name, question in QUESTIONS.items()}
 
@@ -109,3 +119,27 @@ def outlook_bucket(decisions: Decisions) -> Bucket:
 def tally(buckets: list[Bucket]) -> dict[Bucket, int]:
     counts = Counter(buckets)
     return {bucket: counts[bucket] for bucket in BUCKETS}
+
+
+def news_lean(decisions: Iterable[Decisions]) -> NewsLean:
+    """Summarize outlook probability mass without applying the row cutoff."""
+    bullish = bearish = total_impact = 0.0
+    for decision in decisions:
+        impact = decision.answers["impact"].probabilities
+        weight = sum(impact[name] * value for name, value in IMPACT_WEIGHTS.items())
+        outlook = decision.answers["outlook"].probabilities
+        bullish += weight * outlook["Bullish"]
+        bearish += weight * outlook["Bearish"]
+        total_impact += weight
+
+    if bullish + bearish == 0:
+        return NewsLean(bullish_weight=0, bearish_weight=0, score=None, label="No directional signal")
+
+    score = round(100 * (bullish - bearish) / total_impact)
+    if score > BALANCED_POINTS:
+        label = "Leaning bullish"
+    elif score < -BALANCED_POINTS:
+        label = "Leaning bearish"
+    else:
+        label = "Balanced"
+    return NewsLean(bullish_weight=bullish, bearish_weight=bearish, score=score, label=label)

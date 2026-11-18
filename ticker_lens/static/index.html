@@ -24,6 +24,25 @@
     <section id="results" hidden>
       <div class="section-heading"><div><p class="eyebrow">THE NEWS LANDSCAPE</p><h2><span id="result-ticker"></span> <span class="muted">/ recent coverage</span></h2></div><p id="window" class="muted"></p></div>
       <div id="tallies" class="tallies"></div>
+      <section class="lean" aria-labelledby="lean-title">
+        <div class="lean-heading">
+          <div><h3 id="lean-title">Impact-weighted news lean</h3><p id="lean-coverage"></p></div>
+          <strong id="lean-label"></strong>
+        </div>
+        <div class="lean-scale" id="lean-scale" hidden>
+          <div class="lean-track" aria-hidden="true"><span id="lean-marker"></span></div>
+          <div class="lean-axis" aria-hidden="true"><span>Bearish</span><span>Balanced</span><span>Bullish</span></div>
+        </div>
+        <dl class="lean-weights">
+          <div><dt>Bearish weight</dt><dd id="bearish-weight"></dd></div>
+          <div><dt>Bullish weight</dt><dd id="bullish-weight"></dd></div>
+        </dl>
+        <details>
+          <summary>How the lean is calculated</summary>
+          <p>Each story contributes its bullish and bearish probabilities multiplied by its estimated impact. Impact uses the full distribution: High = 1, Medium = 2/3, Low = 1/3, Cannot tell = 0. The totals are points, not article counts or percentages.</p>
+          <p>The gauge divides the difference between bullish and bearish totals by total impact weight, then scales it to -100 to +100. Scores from -5 to +5 are balanced. Neutral and insufficient-context probability add no directional weight. Needs review stories can still contribute; Unscored stories are excluded. This describes the news sample, not the odds of a price move.</p>
+        </details>
+      </section>
       <div class="table-wrap">
         <table><caption class="sr-only">News articles and model decisions</caption><thead><tr><th scope="col">Story / source</th><th scope="col">Business outlook</th><th scope="col">Potential impact</th><th scope="col">Evidence shown</th></tr></thead><tbody id="articles"></tbody></table>
       </div>

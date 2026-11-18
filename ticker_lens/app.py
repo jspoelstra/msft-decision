@@ -3,13 +3,14 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from hashlib import sha256
 from pathlib import Path
 from typing import Annotated
 
 import httpx
 from azure.identity.aio import DefaultAzureCredential
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -57,8 +58,13 @@ async def response_headers(request: Request, call_next):
 
 
 @app.get("/")
-async def index():
-    return FileResponse(STATIC / "index.html")
+def index() -> HTMLResponse:
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    for asset in ("app.js", "style.css"):
+        version = sha256((STATIC / asset).read_bytes()).hexdigest()[:16]
+        url = f"/static/{asset}"
+        html = html.replace(f'"{url}"', f'"{url}?v={version}"')
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/health")

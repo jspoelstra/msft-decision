@@ -8,7 +8,7 @@ from typing import Protocol
 
 from pydantic import BaseModel
 
-from ticker_lens.decision import Bucket, Decisions, outlook_bucket, tally
+from ticker_lens.decision import Bucket, Decisions, NewsLean, news_lean, outlook_bucket, tally
 from ticker_lens.providers import Article, ProviderError
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ class Analysis(BaseModel):
     end: date
     rows: list[Row]
     tally: dict[Bucket, int]
+    lean: NewsLean
 
 
 def normalize_ticker(ticker: str) -> str:
@@ -93,4 +94,5 @@ async def analyze(ticker: str, backend: Backend, today: date | None = None) -> A
         end=end,
         rows=rows,
         tally=tally([row.bucket for row in rows]),
+        lean=news_lean(row.decisions for row in rows if row.decisions is not None),
     )

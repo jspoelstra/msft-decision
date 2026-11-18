@@ -13,6 +13,19 @@ const node = (tag, text, className) => {
   return element;
 };
 const percent = (value) => `${(value * 100).toFixed(1)}%`;
+const weight = (value) => value > 0 && value < 0.005 ? "<0.01" : value.toFixed(2);
+
+function renderLean(data) {
+  const {label, score, bearish_weight, bullish_weight} = data.lean;
+  document.querySelector("#lean-label").textContent =
+    score === null ? label : `${label} (${score > 0 ? "+" : ""}${score})`;
+  document.querySelector("#lean-coverage").textContent =
+    `${data.rows.length - data.tally.Unscored} of ${data.rows.length} stories scored, including Needs review`;
+  document.querySelector("#lean-scale").hidden = score === null;
+  document.querySelector("#lean-marker").style.left = `${(score + 100) / 2}%`;
+  document.querySelector("#bearish-weight").textContent = weight(bearish_weight);
+  document.querySelector("#bullish-weight").textContent = weight(bullish_weight);
+}
 
 function inspect(row, questions, threshold) {
   const details = node("details");
@@ -47,6 +60,7 @@ function render(data) {
     tile.append(node("strong", String(data.tally[label])), node("span", label));
     tallies.append(tile);
   }
+  renderLean(data);
   tbody.replaceChildren();
   for (const row of data.rows) {
     const tr = node("tr");

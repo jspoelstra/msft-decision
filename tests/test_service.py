@@ -78,6 +78,7 @@ async def test_given_one_model_failure_when_analyzing_then_retains_article_and_l
     assert result.rows[0].error == "Foundry returned HTTP 429."
     assert result.rows[0].article.id == 1
     assert sum(result.tally.values()) == 10
+    assert result.lean.bullish_weight == pytest.approx(9 * 0.8 * 13 / 15)
     assert backend.calls == 10
     assert backend.max_active <= 3
 

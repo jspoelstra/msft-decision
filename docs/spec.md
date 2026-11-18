@@ -24,6 +24,8 @@ recommendation, price forecast, or fact-checking service.
 4. Show one tally across the displayed articles: Bullish, Bearish, Neutral or
    mixed, Needs review, and Unscored. Count each displayed article once, not
    each underlying event.
+5. Show the total impact-weighted bullish and bearish probabilities and a
+   directional gauge, separately from the article counts.
 
 ## Decision rubric
 
@@ -46,15 +48,21 @@ cutoff. Show an article as **Unscored** if its model call fails or returns an
 invalid response. Keep both buckets separate from neutral. Impact is not a
 prediction of price movement, and evidence shown is not a guarantee of accuracy.
 
+For the news lean, multiply each scored article's bullish and bearish
+probabilities by its expected impact (High = 1, Medium = 2/3, Low = 1/3,
+Cannot tell = 0), then sum by direction. Include Needs review, not Unscored.
+Divide the net by total impact weight and multiply by 100. A rounded score
+within five points of zero is balanced; zero directional mass means no signal.
+
 ## Implementation boundaries
 
 * Serve a static, single-page UI and `POST /api/analyze` from one Python web
   process, locally or on Azure. The browser sends `{ticker}` and renders the
-  returned ticker, date window, article rows, and tally. Styling and layout can
-  change without changing the rubric, thresholds, or tally.
+  returned ticker, date window, article rows, tally, and weighted news lean.
+  Styling and layout can change without changing the rubric or scoring.
 * Keep the Finnhub adapter, Foundry adapter, and decision logic separate from
   the UI. The decision module owns question definitions, response validation,
-  abstention, and tallying. It can be exercised without a browser.
+  abstention, tallying, and the weighted news lean. It can be exercised without a browser.
 * Deploy `Microsoft-Decision-1.1` in an Azure AI Foundry project. The backend
   sends a direct REST `POST` to
   `<resource-endpoint>/providers/microsoft/v1/systemone`, not a chat endpoint.
