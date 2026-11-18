@@ -15,15 +15,16 @@ recommendation, price forecast, or fact-checking service.
 1. Enter one ticker (default `MSFT`) and select **Analyze news**.
 2. The backend trims and uppercases the ticker, rejects invalid input, and
    requests the last seven days of [Finnhub Company News][finnhub]. Sort newest
-   first, remove duplicates by Finnhub article ID or identical URL, and keep up
-   to 10 articles.
+   first and remove duplicates by Finnhub article ID or identical URL.
+   Scan in batches of at most three until 10 bullish or bearish matches are
+   found or all available seven-day candidates have been checked.
 3. Score each article with Foundry. Show the linked headline, publisher,
    publication time, input depth (headline only or headline and summary), and
    decision labels. An expandable row shows the input text, the questions, and
    the probability for each option so viewers can see how the API works.
-4. Show one tally across the displayed articles: Bullish, Bearish, Neutral or
-   mixed, and Unscored. Count each displayed article once, not
-   each underlying event.
+4. Skip neutral or mixed articles, but report how many were checked and skipped.
+   Keep failed calls visible as Unscored without counting them toward 10 matches.
+   Show a tally across displayed articles, counting articles, not underlying events.
 5. Show the total impact-weighted bullish and bearish probabilities and a
    directional gauge, separately from the article counts.
 
@@ -49,7 +50,9 @@ prediction of price movement, and evidence shown is not a guarantee of accuracy.
 
 For the news lean, multiply each scored article's bullish and bearish
 probabilities by its expected impact (High = 1, Medium = 2/3, Low = 1/3,
-Cannot tell = 0), then sum by direction. Include all scored stories, not Unscored.
+Cannot tell = 0), then sum by direction. Include only displayed bullish or
+bearish matches, not neutral stories or Unscored. Disclose that the gauge
+summarizes a direction-filtered sample, not the full news mix.
 Divide the net by total impact weight and multiply by 100. A rounded score
 within five points of zero is balanced; zero directional mass means no signal.
 
@@ -111,9 +114,11 @@ require no manual code changes between local and hosted execution.
 
 ## Acceptance criteria
 
-* A live run for a ticker with recent coverage shows 1 to 10 distinct, linked
-  Finnhub articles and real Foundry decisions. A run uses one Finnhub news call
-  and at most one Foundry call per article, with bounded concurrency and timeouts.
+* A run shows up to 10 newest bullish or bearish matches, plus scoring failures.
+  Return fewer when the window is exhausted. A run uses one Finnhub news call
+  and at most one Foundry call per scanned article, including skipped neutrals.
+  Limit concurrency to three and stop scanning after 180 seconds with an
+  explicit partial-results warning and completed batches retained.
 * The tally adds up to the displayed row count. Tests with synthetic inputs and
   stubbed responses cover deduplication, low-confidence labels, and
   failed model calls without a browser or live credentials.

@@ -32,7 +32,7 @@ def test_given_invalid_ticker_when_normalizing_then_rejects(value):
         normalize_ticker(value)
 
 
-def test_given_duplicate_urls_ids_and_old_news_when_selecting_then_bounds_results():
+def test_given_duplicates_and_old_news_when_selecting_then_keeps_all_unique_recent_candidates():
     stories = [
         article(1),
         article(1, "https://example.com/duplicate"),
@@ -43,7 +43,7 @@ def test_given_duplicate_urls_ids_and_old_news_when_selecting_then_bounds_result
 
     selected = select_articles(stories, date(2026, 11, 11), TODAY)
 
-    assert len(selected) == 10
+    assert len(selected) == 17
     assert [item.id for item in selected[:2]] == [1, 4]
 
 
@@ -90,3 +90,61 @@ async def test_given_no_news_when_analyzing_then_makes_no_model_calls():
 
     assert result.rows == []
     assert backend.calls == 0
+
+
+@pytest.mark.parametrize("matches", [0, 4, 15])
+async def test_given_neutral_prefix_when_scanning_then_finds_ten_or_exhausts_window(matches):
+    # Arrange
+    class MixedBackend(Backend):
+        async def decide(self, state):
+            self.calls += 1
+            identifier = int(state["headline"].split()[-1])
+            return validate_decisions(
+                response("Neutral or mixed" if identifier <= 12 else
+                         "Bullish" if identifier % 2 else "Bearish")
+            )
+
+    stories = [article(i, timestamp=TIMESTAMP - i) for i in range(1, 13 + matches)]
+    backend = MixedBackend(list(reversed(stories)))
+
+    # Act
+    result = await analyze("MSFT", backend, TODAY)
+
+    # Assert
+    expected = min(matches, 10)
+    assert [row.article.id for row in result.rows] == list(range(13, 13 + expected))
+    assert result.scanned == backend.calls == 12 + expected
+    assert result.available == 12 + matches
+    assert result.neutral_skipped == 12
+    assert result.tally["Neutral or mixed"] == 0
+    assert sum(result.tally.values()) == expected
+    assert result.scan_timed_out is False
+
+
+async def test_given_scoring_failure_when_scanning_then_continues_until_ten_matches():
+    backend = Backend([article(i) for i in range(1, 20)])
+
+    result = await analyze("MSFT", backend, TODAY)
+
+    assert backend.calls == result.scanned == 11
+    assert result.tally["Bullish"] == 10
+    assert result.tally["Unscored"] == 1
+    assert result.rows[0].error == "Foundry returned HTTP 429."
+
+
+async def test_given_scan_timeout_when_analyzing_then_returns_explicit_partial_results(monkeypatch):
+    class SlowBackend(Backend):
+        async def decide(self, state):
+            if state["headline"] == "Story 5":
+                await asyncio.sleep(3600)
+            return validate_decisions(response())
+
+    monkeypatch.setattr("ticker_lens.service.SCAN_TIMEOUT_SECONDS", 0.02)
+    backend = SlowBackend([article(i) for i in range(2, 10)])
+
+    result = await analyze("MSFT", backend, TODAY)
+
+    assert result.scan_timed_out is True
+    assert result.scanned == 3
+    assert result.available == 8
+    assert len(result.rows) == 3

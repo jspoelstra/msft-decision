@@ -5,19 +5,22 @@ description: Live Finnhub news scored with Microsoft-Decision-1.1 on Azure AI Fo
 
 ## What it does
 
-Enter a U.S. ticker to retrieve up to 10 articles from the last seven UTC dates.
+Enter a U.S. ticker to scan news from the last seven UTC dates, newest first,
+until 10 bullish or bearish stories are found or the window is exhausted.
 The backend sends each headline and available summary to Azure AI Foundry's
 Decision API with three fixed-choice questions: business outlook, potential
 impact, and evidence shown. Expand a row to inspect the actual input, rubric,
 and every option's probability.
 
 The impact-weighted news lean sums bullish and bearish probability across
-all scored stories. For each story, the app weights
+the displayed bullish or bearish stories. For each story, the app weights
 both probabilities by expected impact: High = 1, Medium = 2/3, Low = 1/3,
 and Cannot tell = 0. The gauge shows the difference divided by total impact
 weight on a scale from -100 to +100. Rounded scores from -5 to +5 are
 balanced; no directional weight means no signal. This is a summary of the
-selected stories, not a probability of a price move.
+selected stories, not a probability of a price move or the full news mix.
+Neutral or mixed stories are skipped; the UI reports how many were checked
+and skipped. Scoring failures remain visible and do not count toward 10 matches.
 
 Each scored article uses the model's selected Bullish, Bearish, or Neutral or
 mixed outlook without a confidence cutoff. Neutral or mixed includes limited
@@ -163,8 +166,10 @@ page uses versioned JavaScript and CSS URLs to avoid reusing outdated assets.
 Allow several minutes for identity and RBAC changes to propagate. HTTP 429 means
 the provider's quota/rate limit was reached; wait or adjust capacity. Scoring
 uses at most three concurrent calls and does not retry, preserving a maximum
-of one model request per displayed article. Only one analysis runs at a time
-per Python process.
+of one model request per scanned article. Scanning can require substantially
+more than 10 inference calls, including neutral stories that are not displayed.
+After 180 seconds of scanning, the app returns completed batches with an explicit
+partial-results warning. Only one analysis runs at a time per Python process.
 
 Provisioning fails before creating paid resources when the Finnhub key is
 missing. Azure CLI failures are reported without dumping potentially sensitive

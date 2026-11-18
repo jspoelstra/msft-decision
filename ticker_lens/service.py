@@ -12,6 +12,7 @@ from ticker_lens.decision import Bucket, Decisions, NewsLean, news_lean, outlook
 from ticker_lens.providers import Article, ProviderError
 
 logger = logging.getLogger(__name__)
+SCAN_TIMEOUT_SECONDS = 180
 
 
 class Backend(Protocol):
@@ -35,6 +36,10 @@ class Analysis(BaseModel):
     rows: list[Row]
     tally: dict[Bucket, int]
     lean: NewsLean
+    scanned: int
+    available: int
+    neutral_skipped: int
+    scan_timed_out: bool
 
 
 def normalize_ticker(ticker: str) -> str:
@@ -58,8 +63,6 @@ def select_articles(articles: list[Article], start: date, end: date) -> list[Art
         seen_ids.add(article.id)
         seen_urls.add(url)
         selected.append(article)
-        if len(selected) == 10:
-            break
     return selected
 
 
@@ -68,7 +71,6 @@ async def analyze(ticker: str, backend: Backend, today: date | None = None) -> A
     end = today or datetime.now(UTC).date()
     start = end - timedelta(days=6)
     articles = select_articles(await backend.news(ticker, start, end), start, end)
-    semaphore = asyncio.Semaphore(3)
 
     async def score(article: Article) -> Row:
         state = {"ticker": ticker, "headline": article.headline, "summary": article.summary}
@@ -79,15 +81,34 @@ async def analyze(ticker: str, backend: Backend, today: date | None = None) -> A
             bucket="Unscored",
         )
         try:
-            async with semaphore:
-                row.decisions = await backend.decide(state)
+            row.decisions = await backend.decide(state)
             row.bucket = outlook_bucket(row.decisions)
         except ProviderError as exc:
             logger.warning("Article %s could not be scored: %s", article.id, exc)
             row.error = str(exc)
         return row
 
-    rows = await asyncio.gather(*(score(article) for article in articles))
+    rows: list[Row] = []
+    directional = scanned = neutral_skipped = 0
+    scan_timed_out = False
+    try:
+        async with asyncio.timeout(SCAN_TIMEOUT_SECONDS):
+            while scanned < len(articles) and directional < 10:
+                # Never start more calls than the remaining match slots.
+                batch = articles[scanned : scanned + min(3, 10 - directional)]
+                scored = await asyncio.gather(*(score(article) for article in batch))
+                scanned += len(scored)
+                for row in scored:
+                    if row.bucket == "Neutral or mixed":
+                        neutral_skipped += 1
+                    else:
+                        rows.append(row)
+                        if row.bucket in ("Bullish", "Bearish"):
+                            directional += 1
+    except TimeoutError:
+        scan_timed_out = True
+        logger.warning("News scan timed out after %s completed articles", scanned)
+
     return Analysis(
         ticker=ticker,
         start=start,
@@ -95,4 +116,8 @@ async def analyze(ticker: str, backend: Backend, today: date | None = None) -> A
         rows=rows,
         tally=tally([row.bucket for row in rows]),
         lean=news_lean(row.decisions for row in rows if row.decisions is not None),
+        scanned=scanned,
+        available=len(articles),
+        neutral_skipped=neutral_skipped,
+        scan_timed_out=scan_timed_out,
     )

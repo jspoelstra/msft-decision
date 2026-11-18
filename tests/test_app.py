@@ -32,6 +32,8 @@ def test_given_no_news_when_calling_api_then_returns_zero_tally_and_rubric():
     data = result.json()
     assert data["ticker"] == "MSFT"
     assert data["rows"] == []
+    assert data["scanned"] == data["available"] == data["neutral_skipped"] == 0
+    assert data["scan_timed_out"] is False
     assert sum(data["tally"].values()) == 0
     assert data["lean"] == {
         "bullish_weight": 0.0,

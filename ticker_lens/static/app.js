@@ -20,7 +20,7 @@ function renderLean(data) {
   document.querySelector("#lean-label").textContent =
     score === null ? label : `${label} (${score > 0 ? "+" : ""}${score})`;
   document.querySelector("#lean-coverage").textContent =
-    `${data.rows.length - data.tally.Unscored} of ${data.rows.length} stories scored`;
+    `${data.tally.Bullish + data.tally.Bearish} directional stories; neutral stories excluded`;
   document.querySelector("#lean-scale").hidden = score === null;
   document.querySelector("#lean-marker").style.left = `${(score + 100) / 2}%`;
   document.querySelector("#bearish-weight").textContent = weight(bearish_weight);
@@ -90,7 +90,7 @@ form.addEventListener("submit", async (event) => {
   button.disabled = true;
   results.hidden = true;
   statusBox.className = "";
-  statusBox.textContent = "Retrieving news and scoring each story through Azure Foundry...";
+  statusBox.textContent = "Scanning newest-first for 10 bullish or bearish stories through Azure Foundry...";
   try {
     const response = await fetch("/api/analyze", {
       method: "POST",
@@ -103,8 +103,9 @@ form.addEventListener("submit", async (event) => {
     if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Invalid request. Enter a U.S. ticker.");
     render(data);
     const failures = data.tally.Unscored;
-    statusBox.textContent = data.rows.length
-      ? `${data.rows.length} stories analyzed.${failures ? ` ${failures} could not be scored; expand those rows for the error.` : ""}`
+    const matches = data.tally.Bullish + data.tally.Bearish;
+    statusBox.textContent = data.available
+      ? `${matches} bullish or bearish stories found. Checked ${data.scanned} of ${data.available} available stories; skipped ${data.neutral_skipped} neutral or mixed.${failures ? ` ${failures} could not be scored; expand those rows for the error.` : ""}${data.scan_timed_out ? " Time limit reached; results are partial. Some requests may have been canceled." : matches < 10 ? " Reached the end of the seven-day news window." : ""}`
       : "No recent news was returned for this ticker. Check the symbol or try another.";
   } catch (error) {
     statusBox.className = "error";
