@@ -19,6 +19,7 @@ class Settings(BaseModel):
     finnhub_api_key: str = ""
     azure_endpoint: str = ""
     deployment_name: str = "decision"
+    news_lookback_days: int = Field(default=7, ge=1, le=7)
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -26,6 +27,7 @@ class Settings(BaseModel):
             finnhub_api_key=os.getenv("FINNHUB_API_KEY", ""),
             azure_endpoint=os.getenv("AZURE_ENDPOINT", "").rstrip("/"),
             deployment_name=os.getenv("DEPLOYMENT_NAME", "decision"),
+            news_lookback_days=int(os.getenv("NEWS_LOOKBACK_DAYS", "7")),
         )
 
     def require_configured(self) -> None:

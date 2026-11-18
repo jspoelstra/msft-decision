@@ -53,8 +53,10 @@ class Backend:
         self.active = 0
         self.max_active = 0
         self.calls = 0
+        self.news_calls = []
 
     async def news(self, ticker, start, end):
+        self.news_calls.append((start, end))
         return self.stories
 
     async def decide(self, state):
@@ -148,3 +150,56 @@ async def test_given_scan_timeout_when_analyzing_then_returns_explicit_partial_r
     assert result.scanned == 3
     assert result.available == 8
     assert len(result.rows) == 3
+
+
+async def test_given_ten_matches_today_when_scanning_then_does_not_fetch_older_days():
+    backend = Backend([article(i) for i in range(2, 20)])
+
+    result = await analyze("MSFT", backend, TODAY)
+
+    assert backend.news_calls == [(TODAY, TODAY)]
+    assert result.days_fetched == 1
+    assert result.tally["Bullish"] == 10
+
+
+async def test_given_empty_days_when_scanning_then_respects_configured_lookback():
+    backend = Backend([])
+
+    result = await analyze("MSFT", backend, TODAY, lookback_days=2)
+
+    assert backend.news_calls == [
+        (TODAY, TODAY), (date(2026, 11, 16), date(2026, 11, 16))
+    ]
+    assert result.start == date(2026, 11, 16)
+    assert result.days_fetched == result.lookback_days == 2
+    assert backend.calls == 0
+
+
+async def test_given_multiple_days_when_scanning_then_preserves_order_and_deduplicates():
+    backend = Backend([
+        article(2),
+        article(3, timestamp=TIMESTAMP - 86400),
+        article(4, url="https://example.com/2", timestamp=TIMESTAMP - 86400),
+        article(2, timestamp=TIMESTAMP - 86400),
+        article(5, timestamp=TIMESTAMP - 2 * 86400),
+    ])
+
+    result = await analyze("MSFT", backend, TODAY, lookback_days=2)
+
+    assert [row.article.id for row in result.rows] == [2, 3]
+    assert result.scanned == result.available == backend.calls == 2
+    assert len(backend.news_calls) == 2
+
+
+async def test_given_later_news_failure_when_scanning_then_returns_explicit_partial_results():
+    class FailingNewsBackend(Backend):
+        async def news(self, ticker, start, end):
+            if start != TODAY:
+                raise ProviderError("Finnhub returned HTTP 429.")
+            return self.stories
+
+    result = await analyze("MSFT", FailingNewsBackend([article(2)]), TODAY)
+
+    assert len(result.rows) == 1
+    assert result.days_fetched == 1
+    assert result.scan_error == "Finnhub returned HTTP 429."

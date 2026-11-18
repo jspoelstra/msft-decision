@@ -22,7 +22,9 @@ def test_given_missing_config_when_analyzing_then_returns_explicit_error(monkeyp
 
 def test_given_no_news_when_calling_api_then_returns_zero_tally_and_rubric():
     backend = Backend([])
-    backend.settings = Settings(finnhub_api_key="test", azure_endpoint="https://test.example.com")
+    backend.settings = Settings(
+        finnhub_api_key="test", azure_endpoint="https://test.example.com", news_lookback_days=2
+    )
     with TestClient(app) as client:
         app.state.providers = backend
 
@@ -34,6 +36,7 @@ def test_given_no_news_when_calling_api_then_returns_zero_tally_and_rubric():
     assert data["rows"] == []
     assert data["scanned"] == data["available"] == data["neutral_skipped"] == 0
     assert data["scan_timed_out"] is False
+    assert data["lookback_days"] == data["days_fetched"] == len(backend.news_calls) == 2
     assert sum(data["tally"].values()) == 0
     assert data["lean"] == {
         "bullish_weight": 0.0,

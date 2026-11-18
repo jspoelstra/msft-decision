@@ -104,9 +104,8 @@ form.addEventListener("submit", async (event) => {
     render(data);
     const failures = data.tally.Unscored;
     const matches = data.tally.Bullish + data.tally.Bearish;
-    statusBox.textContent = data.available
-      ? `${matches} bullish or bearish stories found. Checked ${data.scanned} of ${data.available} available stories; skipped ${data.neutral_skipped} neutral or mixed.${failures ? ` ${failures} could not be scored; expand those rows for the error.` : ""}${data.scan_timed_out ? " Time limit reached; results are partial. Some requests may have been canceled." : matches < 10 ? " Reached the end of the seven-day news window." : ""}`
-      : "No recent news was returned for this ticker. Check the symbol or try another.";
+    statusBox.textContent =
+      `${matches} bullish or bearish stories found. Fetched ${data.days_fetched} of up to ${data.lookback_days} days. Checked ${data.scanned} of ${data.available} retrieved unique stories; skipped ${data.neutral_skipped} neutral or mixed.${failures ? ` ${failures} could not be scored; expand those rows for the error.` : ""}${data.scan_error ? ` News retrieval stopped: ${data.scan_error} Results are partial.` : data.scan_timed_out ? " Time limit reached; results are partial. Some requests may have been canceled." : matches < 10 ? ` Reached the end of the ${data.lookback_days}-day news window.` : ""}`;
   } catch (error) {
     statusBox.className = "error";
     statusBox.textContent = error instanceof Error ? error.message : "The request failed.";

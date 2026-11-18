@@ -5,8 +5,11 @@ description: Live Finnhub news scored with Microsoft-Decision-1.1 on Azure AI Fo
 
 ## What it does
 
-Enter a U.S. ticker to scan news from the last seven UTC dates, newest first,
-until 10 bullish or bearish stories are found or the window is exhausted.
+Enter a U.S. ticker to scan news one UTC date at a time, newest first,
+until 10 bullish or bearish stories are found or the lookback is exhausted.
+Set `NEWS_LOOKBACK_DAYS` in `.env` to 1 through 7 (default 7), then restart
+`make run`. For hosted runs, set the same App Service environment variable.
+Older days are fetched only after the newer day's candidates are exhausted.
 The backend sends each headline and available summary to Azure AI Foundry's
 Decision API with three fixed-choice questions: business outlook, potential
 impact, and evidence shown. Expand a row to inspect the actual input, rubric,
@@ -168,7 +171,10 @@ the provider's quota/rate limit was reached; wait or adjust capacity. Scoring
 uses at most three concurrent calls and does not retry, preserving a maximum
 of one model request per scanned article. Scanning can require substantially
 more than 10 inference calls, including neutral stories that are not displayed.
-After 180 seconds of scanning, the app returns completed batches with an explicit
+Each run uses one Finnhub request per fetched day, at most `NEWS_LOOKBACK_DAYS`
+requests. The UI counts retrieved stories only from those fetched days, not the
+entire potential lookback. Duplicate IDs and URLs are skipped across days.
+After 180 seconds of retrieval and scoring, the app returns completed batches with an explicit
 partial-results warning. Only one analysis runs at a time per Python process.
 
 Provisioning fails before creating paid resources when the Finnhub key is

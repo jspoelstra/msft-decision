@@ -14,10 +14,12 @@ recommendation, price forecast, or fact-checking service.
 
 1. Enter one ticker (default `MSFT`) and select **Analyze news**.
 2. The backend trims and uppercases the ticker, rejects invalid input, and
-   requests the last seven days of [Finnhub Company News][finnhub]. Sort newest
+   requests [Finnhub Company News][finnhub] one UTC day at a time, starting today.
+   Configure `NEWS_LOOKBACK_DAYS` from 1 through 7, default 7. Fetch the previous
+   day only after exhausting the newer day's candidates. Sort newest
    first and remove duplicates by Finnhub article ID or identical URL.
    Scan in batches of at most three until 10 bullish or bearish matches are
-   found or all available seven-day candidates have been checked.
+   found or all available candidates in the configured lookback have been checked.
 3. Score each article with Foundry. Show the linked headline, publisher,
    publication time, input depth (headline only or headline and summary), and
    decision labels. An expandable row shows the input text, the questions, and
@@ -115,7 +117,8 @@ require no manual code changes between local and hosted execution.
 ## Acceptance criteria
 
 * A run shows up to 10 newest bullish or bearish matches, plus scoring failures.
-  Return fewer when the window is exhausted. A run uses one Finnhub news call
+  Return fewer when the window is exhausted. A run uses one Finnhub call per
+  fetched day, at most the configured lookback, with deduplication across days,
   and at most one Foundry call per scanned article, including skipped neutrals.
   Limit concurrency to three and stop scanning after 180 seconds with an
   explicit partial-results warning and completed batches retained.

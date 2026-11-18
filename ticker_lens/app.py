@@ -86,7 +86,9 @@ async def analyze_news(body: AnalyzeRequest, request: Request):
         backend.settings.require_configured()
         async with lock:
             async with asyncio.timeout(205):
-                result: Analysis = await analyze(ticker, backend)
+                result: Analysis = await analyze(
+                    ticker, backend, lookback_days=backend.settings.news_lookback_days
+                )
         return {
             **result.model_dump(mode="json"),
             "questions": questions_payload(),

@@ -11,6 +11,20 @@ from test_decision import response
 from ticker_lens.providers import ProviderError, Providers, Settings
 
 
+@pytest.mark.parametrize("days", ["0", "8", "invalid"])
+def test_given_invalid_lookback_when_loading_settings_then_rejects(monkeypatch, days):
+    monkeypatch.setenv("NEWS_LOOKBACK_DAYS", days)
+
+    with pytest.raises(ValueError):
+        Settings.from_env()
+
+
+def test_given_configured_lookback_when_loading_settings_then_uses_value(monkeypatch):
+    monkeypatch.setenv("NEWS_LOOKBACK_DAYS", "3")
+
+    assert Settings.from_env().news_lookback_days == 3
+
+
 class Credential:
     async def get_token(self, scope):
         assert scope == "https://cognitiveservices.azure.com/.default"
