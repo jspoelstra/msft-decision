@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from ticker_lens.decision import THRESHOLD, questions_payload
+from ticker_lens.decision import questions_payload
 from ticker_lens.providers import ProviderError, Providers, Settings
 from ticker_lens.service import Analysis, analyze, normalize_ticker
 
@@ -90,7 +90,6 @@ async def analyze_news(body: AnalyzeRequest, request: Request):
         return {
             **result.model_dump(mode="json"),
             "questions": questions_payload(),
-            "threshold": THRESHOLD,
         }
     except ProviderError as exc:
         logger.warning("Analysis unavailable: %s", exc)

@@ -12,12 +12,17 @@ impact, and evidence shown. Expand a row to inspect the actual input, rubric,
 and every option's probability.
 
 The impact-weighted news lean sums bullish and bearish probability across
-scored stories, including **Needs review**. For each story, the app weights
+all scored stories. For each story, the app weights
 both probabilities by expected impact: High = 1, Medium = 2/3, Low = 1/3,
 and Cannot tell = 0. The gauge shows the difference divided by total impact
 weight on a scale from -100 to +100. Rounded scores from -5 to +5 are
 balanced; no directional weight means no signal. This is a summary of the
 selected stories, not a probability of a price move.
+
+Each scored article uses the model's selected Bullish, Bearish, or Neutral or
+mixed outlook without a confidence cutoff. Neutral or mixed includes limited
+context that does not establish direction. Probabilities remain visible;
+failed or invalid responses stay Unscored, not neutral.
 
 The [implementation spec](docs/spec.md) defines the scope. This is an educational
 demo, not investment advice, a price prediction, or verification of news claims.

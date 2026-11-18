@@ -4,7 +4,7 @@ const button = document.querySelector("#submit");
 const statusBox = document.querySelector("#status");
 const results = document.querySelector("#results");
 const tbody = document.querySelector("#articles");
-const labels = ["Bullish", "Bearish", "Neutral or mixed", "Needs review", "Unscored"];
+const labels = ["Bullish", "Bearish", "Neutral or mixed", "Unscored"];
 const slug = (text) => text.toLowerCase().replaceAll(" ", "-");
 const node = (tag, text, className) => {
   const element = document.createElement(tag);
@@ -20,14 +20,14 @@ function renderLean(data) {
   document.querySelector("#lean-label").textContent =
     score === null ? label : `${label} (${score > 0 ? "+" : ""}${score})`;
   document.querySelector("#lean-coverage").textContent =
-    `${data.rows.length - data.tally.Unscored} of ${data.rows.length} stories scored, including Needs review`;
+    `${data.rows.length - data.tally.Unscored} of ${data.rows.length} stories scored`;
   document.querySelector("#lean-scale").hidden = score === null;
   document.querySelector("#lean-marker").style.left = `${(score + 100) / 2}%`;
   document.querySelector("#bearish-weight").textContent = weight(bearish_weight);
   document.querySelector("#bullish-weight").textContent = weight(bullish_weight);
 }
 
-function inspect(row, questions, threshold) {
+function inspect(row, questions) {
   const details = node("details");
   details.append(node("summary", "Inspect decision API"));
   const panel = node("div", undefined, "inspection");
@@ -45,7 +45,7 @@ function inspect(row, questions, threshold) {
       panel.append(option);
     }
   }
-  panel.append(node("p", `Outlook review threshold: ${percent(threshold)} (educational default, not validated). ${row.decisions ? `Model: ${row.decisions.model}` : ""}`));
+  if (row.decisions) panel.append(node("p", `Model: ${row.decisions.model}`));
   details.append(panel);
   return details;
 }
@@ -70,7 +70,7 @@ function render(data) {
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     story.append(a, node("p", `${row.article.source} / ${new Date(row.article.datetime * 1000).toLocaleString()} / ${row.input_depth}`, "meta"));
-    story.append(inspect(row, data.questions, data.threshold));
+    story.append(inspect(row, data.questions));
     tr.append(story);
     for (const name of ["outlook", "impact", "evidence"]) {
       const td = node("td");

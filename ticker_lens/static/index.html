@@ -40,7 +40,7 @@
         <details>
           <summary>How the lean is calculated</summary>
           <p>Each story contributes its bullish and bearish probabilities multiplied by its estimated impact. Impact uses the full distribution: High = 1, Medium = 2/3, Low = 1/3, Cannot tell = 0. The totals are points, not article counts or percentages.</p>
-          <p>The gauge divides the difference between bullish and bearish totals by total impact weight, then scales it to -100 to +100. Scores from -5 to +5 are balanced. Neutral and insufficient-context probability add no directional weight. Needs review stories can still contribute; Unscored stories are excluded. This describes the news sample, not the odds of a price move.</p>
+          <p>The gauge divides the difference between bullish and bearish totals by total impact weight, then scales it to -100 to +100. Scores from -5 to +5 are balanced. Neutral or mixed probability adds no directional weight. All scored stories contribute; Unscored stories are excluded. This describes the news sample, not the odds of a price move.</p>
         </details>
       </section>
       <div class="table-wrap">
@@ -53,7 +53,7 @@
       <div class="explain-grid">
         <article><span class="step">01 / RETRIEVE</span><h3>News, not a crawler</h3><p>Finnhub supplies headlines and available summaries. We don't scrape publisher pages or claim to read full articles.</p></article>
         <article><span class="step">02 / DECIDE</span><h3>Choices, not chat</h3><p>Foundry scores a fixed set of answers for outlook, impact, and visible sourcing in one API call per story. No generated rationale.</p></article>
-        <article><span class="step">03 / ABSTAIN</span><h3>Uncertainty stays visible</h3><p>Outlook below 70% or insufficient context goes to Needs review. Errors stay Unscored, never quietly neutral.</p></article>
+        <article><span class="step">03 / COMPARE</span><h3>Uncertainty stays visible</h3><p>Every scored story gets Bullish, Bearish, or Neutral or mixed, with its probability shown. Limited context can count as neutral; errors stay Unscored.</p></article>
       </div>
     </section>
   </main>

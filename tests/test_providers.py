@@ -41,6 +41,9 @@ async def test_given_article_when_scoring_then_posts_one_typed_request_to_resour
     body = json.loads(request.content)
     assert body["model"] == "my-deployment"
     assert set(body["questions"]) == {"outlook", "impact", "evidence"}
+    assert set(body["questions"]["outlook"]["criteria"]) == {
+        "Bullish", "Bearish", "Neutral or mixed"
+    }
     assert request.headers["authorization"] == "Bearer test-token"
 
 

@@ -34,11 +34,12 @@ def response(outlook="Bullish", probability=0.8):
         ("Bullish", 0.70, "Bullish"),
         ("Bearish", 0.8, "Bearish"),
         ("Neutral or mixed", 0.8, "Neutral or mixed"),
-        ("Bullish", 0.699, "Needs review"),
-        ("Not enough context", 0.99, "Needs review"),
+        ("Bullish", 0.699, "Bullish"),
+        ("Bearish", 0.4, "Bearish"),
+        ("Neutral or mixed", 0.4, "Neutral or mixed"),
     ],
 )
-def test_given_outlook_when_applying_threshold_then_preserves_abstention(
+def test_given_outlook_when_classifying_then_keeps_selected_label_at_any_confidence(
     choice, probability, expected
 ):
     decisions = validate_decisions(response(choice, probability))
@@ -63,23 +64,22 @@ def test_given_malformed_response_when_validating_then_fails_explicitly(defect):
         validate_decisions(payload)
 
 
-def test_given_review_and_errors_when_tallying_then_neither_counts_as_neutral():
-    result = tally(["Bullish", "Needs review", "Unscored"])
+def test_given_errors_when_tallying_then_does_not_count_as_neutral():
+    result = tally(["Bullish", "Unscored"])
 
     assert result == {
         "Bullish": 1,
         "Bearish": 0,
         "Neutral or mixed": 0,
-        "Needs review": 1,
         "Unscored": 1,
     }
 
 
-def test_given_review_stories_when_weighting_then_higher_impact_can_reverse_the_lean():
+def test_given_low_confidence_stories_when_weighting_then_impact_can_reverse_the_lean():
     # Arrange
     outlooks = [
-        ("Bullish", [0.6, 0.1, 0.2, 0.1], [0, 0, 1, 0]),
-        ("Bearish", [0.2, 0.6, 0.1, 0.1], [0.5, 0.5, 0, 0]),
+        ("Bullish", [0.6, 0.1, 0.3], [0, 0, 1, 0]),
+        ("Bearish", [0.2, 0.6, 0.2], [0.5, 0.5, 0, 0]),
     ]
     decisions = []
     for choice, outlook, impact in outlooks:
@@ -96,7 +96,7 @@ def test_given_review_stories_when_weighting_then_higher_impact_can_reverse_the_
     result = news_lean(decisions)
 
     # Assert
-    assert [outlook_bucket(decision) for decision in decisions] == ["Needs review"] * 2
+    assert [outlook_bucket(decision) for decision in decisions] == ["Bullish", "Bearish"]
     assert result.bullish_weight == pytest.approx(11 / 30)
     assert result.bearish_weight == pytest.approx(8 / 15)
     assert (result.score, result.label) == (-14, "Leaning bearish")
@@ -124,7 +124,6 @@ def test_given_directional_weights_when_summarizing_then_reports_lean_or_no_sign
             "Bullish": bullish,
             "Bearish": bearish,
             "Neutral or mixed": 1 - (bullish + bearish),
-            "Not enough context": 0,
         },
     }
     payload["answers"]["impact"]["probabilities"] = {

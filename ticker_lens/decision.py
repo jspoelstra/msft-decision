@@ -7,9 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Bucket = Literal["Bullish", "Bearish", "Neutral or mixed", "Needs review", "Unscored"]
-THRESHOLD = 0.70
-BUCKETS: tuple[Bucket, ...] = ("Bullish", "Bearish", "Neutral or mixed", "Needs review", "Unscored")
+Bucket = Literal["Bullish", "Bearish", "Neutral or mixed", "Unscored"]
+BUCKETS: tuple[Bucket, ...] = ("Bullish", "Bearish", "Neutral or mixed", "Unscored")
 IMPACT_WEIGHTS = {"High": 1.0, "Medium": 2 / 3, "Low": 1 / 3, "Cannot tell": 0.0}
 BALANCED_POINTS = 5
 
@@ -31,8 +30,8 @@ QUESTIONS = {
         criteria={
             "Bullish": "A materially favorable development for the target company's business.",
             "Bearish": "A materially unfavorable development for the target company's business.",
-            "Neutral or mixed": "Adequate context, but no clear net positive or negative effect.",
-            "Not enough context": "Insufficient target-specific information to judge direction.",
+            "Neutral or mixed": "No clear net positive or negative effect, mixed effects, "
+            "or insufficient target-specific information to establish direction.",
         },
     ),
     "impact": Question(
@@ -108,8 +107,6 @@ def validate_decisions(payload: object) -> Decisions:
 
 def outlook_bucket(decisions: Decisions) -> Bucket:
     answer = decisions.answers["outlook"]
-    if answer.choice == "Not enough context" or answer.probabilities[answer.choice] < THRESHOLD:
-        return "Needs review"
     for bucket in BUCKETS[:3]:
         if answer.choice == bucket:
             return bucket
@@ -122,7 +119,7 @@ def tally(buckets: list[Bucket]) -> dict[Bucket, int]:
 
 
 def news_lean(decisions: Iterable[Decisions]) -> NewsLean:
-    """Summarize outlook probability mass without applying the row cutoff."""
+    """Summarize impact-weighted outlook probability mass."""
     bullish = bearish = total_impact = 0.0
     for decision in decisions:
         impact = decision.answers["impact"].probabilities
