@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ticker Lens | News into perspective</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/">tl<span>/</span> Ticker Lens</a><span class="model"><i></i> Microsoft-Decision-1.1 <span class="muted">/ Azure Foundry</span></span></header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">MARKET SIGNALS, NOT MARKET ADVICE</p>
+      <h1>The headlines move fast.<br><span>Find some perspective.</span></h1>
+      <p class="intro">One ticker. Recent news. Three bounded decisions per story.<br>Explore what a decision model sees, and where it isn't sure.</p>
+      <form id="search">
+        <label for="ticker">U.S. STOCK TICKER</label>
+        <div class="searchbar"><span class="search-icon" aria-hidden="true">$</span><input id="ticker" name="ticker" value="MSFT" maxlength="32" autocomplete="off" spellcheck="false" required aria-describedby="search-help"><button id="submit" type="submit">Analyze news <span aria-hidden="true">&#8599;</span></button></div>
+        <p id="search-help">Last 7 days &middot; Up to 10 stories &middot; Live via Finnhub</p>
+      </form>
+    </section>
+    <div id="status" role="status" aria-live="polite"></div>
+    <section id="results" hidden>
+      <div class="section-heading"><div><p class="eyebrow">THE NEWS LANDSCAPE</p><h2><span id="result-ticker"></span> <span class="muted">/ recent coverage</span></h2></div><p id="window" class="muted"></p></div>
+      <div id="tallies" class="tallies"></div>
+      <div class="table-wrap">
+        <table><caption class="sr-only">News articles and model decisions</caption><thead><tr><th scope="col">Story / source</th><th scope="col">Business outlook</th><th scope="col">Potential impact</th><th scope="col">Evidence shown</th></tr></thead><tbody id="articles"></tbody></table>
+      </div>
+      <p class="table-note">Counts represent articles, not independent events. Similar coverage can amplify the same story.</p>
+    </section>
+    <section class="explainer">
+      <p class="eyebrow">UNDER THE LENS</p>
+      <div class="explain-grid">
+        <article><span class="step">01 / RETRIEVE</span><h3>News, not a crawler</h3><p>Finnhub supplies headlines and available summaries. We don't scrape publisher pages or claim to read full articles.</p></article>
+        <article><span class="step">02 / DECIDE</span><h3>Choices, not chat</h3><p>Foundry scores a fixed set of answers for outlook, impact, and visible sourcing in one API call per story. No generated rationale.</p></article>
+        <article><span class="step">03 / ABSTAIN</span><h3>Uncertainty stays visible</h3><p>Outlook below 70% or insufficient context goes to Needs review. Errors stay Unscored, never quietly neutral.</p></article>
+      </div>
+    </section>
+  </main>
+  <footer><span>Ticker Lens <span class="muted">/ An educational Decision API demo</span></span><p>Not investment advice. Model probabilities are not probabilities of returns. Evidence labels do not verify claims.</p></footer>
+</body>
+</html>

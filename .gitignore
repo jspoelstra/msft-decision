@@ -1,0 +1,13 @@
+.venv/
+.azure/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+infra/*.json
+uv.lock
