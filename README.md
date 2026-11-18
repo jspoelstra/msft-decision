@@ -3,17 +3,32 @@ title: Ticker Lens
 description: Live Finnhub news scored with Microsoft-Decision-1.1 on Azure AI Foundry.
 ---
 
+**Turn a stock ticker into a readable view of recent company news.**
+Ticker Lens is an educational demo of Microsoft-Decision-1.1 on Azure AI
+Foundry. It shows what the model chose and how it scored the alternatives.
+
+[Run locally](#run-locally-with-live-services) ·
+[Deploy to Azure](#provision-and-deploy) ·
+[Read the implementation spec](docs/spec.md)
+
+![Ticker Lens dashboard showing bullish and bearish story counts, an impact-weighted gauge, and individual article scores](docs/images/ticker-lens-dashboard.png)
+
+*Screenshots use fictional headlines and sample scores, not live market data.*
+
 ## What it does
 
-Enter a U.S. ticker to scan news one UTC date at a time, newest first,
-until 10 bullish or bearish stories are found or the lookback is exhausted.
-Set `NEWS_LOOKBACK_DAYS` in `.env` to 1 through 7 (default 7), then restart
-`make run`. For hosted runs, set the same App Service environment variable.
-Older days are fetched only after the newer day's candidates are exhausted.
-The backend sends each headline and available summary to Azure AI Foundry's
-Decision API with three fixed-choice questions: business outlook, potential
-impact, and evidence shown. Expand a row to inspect the actual input, rubric,
-and every option's probability.
+1. **Find relevant stories.** Enter a U.S. ticker. Ticker Lens fetches live
+   Finnhub news one UTC day at a time, newest first, until it finds 10 bullish
+   or bearish stories or reaches the end of the lookback.
+2. **Compare the results.** Read the story counts and impact-weighted news
+   lean. The app skips neutral stories and reports how many it checked.
+3. **Inspect a decision.** Expand a row to see the headline and summary sent
+   to Foundry, the scoring rubric, and the probabilities for each option
+   across business outlook, potential impact, and evidence shown.
+
+![Expanded decision inspector showing the submitted headline and summary and the three outlook probabilities](docs/images/ticker-lens-inspector.png)
+
+### How to read the news lean
 
 The impact-weighted news lean sums bullish and bearish probability across
 the displayed bullish or bearish stories. For each story, the app weights
@@ -30,8 +45,8 @@ mixed outlook without a confidence cutoff. Neutral or mixed includes limited
 context that does not establish direction. Probabilities remain visible;
 failed or invalid responses stay Unscored, not neutral.
 
-The [implementation spec](docs/spec.md) defines the scope. This is an educational
-demo, not investment advice, a price prediction, or verification of news claims.
+This is an educational demo, not investment advice, a price prediction, or
+verification of news claims.
 Only article IDs and identical URLs are deduplicated; syndicated stories can
 still describe the same event.
 
@@ -152,6 +167,9 @@ make run
 Open <http://127.0.0.1:8000>. Without credentials, the UI and health endpoint
 still load, but analysis reports the missing configuration rather than
 substituting sample data.
+
+Set `NEWS_LOOKBACK_DAYS` in `.env` to use a shorter lookback (1 to 7, default 7),
+then restart `make run`. On Azure, set the same App Service environment variable.
 
 After updating the app, reload the page before running another analysis. The
 page uses versioned JavaScript and CSS URLs to avoid reusing outdated assets.
