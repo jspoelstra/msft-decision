@@ -9,6 +9,7 @@ Foundry. It shows what the model chose and how it scored the alternatives.
 
 [Run locally](#run-locally-with-live-services) ·
 [Deploy to Azure](#provision-and-deploy) ·
+[For coding agents](README-for-coding-agents.md) ·
 [Read the implementation spec](docs/spec.md)
 
 ![Ticker Lens dashboard showing bullish and bearish story counts, an impact-weighted gauge, and individual article scores](docs/images/ticker-lens-dashboard.png)
